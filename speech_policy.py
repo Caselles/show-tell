@@ -47,7 +47,8 @@ for g in goal_space:
 				for att2 in attributes_involved[1]:
 					instructions.append(get_instruction_from_attributes(att1, att2))
 
-
+					if att1 != att2:
+						instructions.append(get_instruction_from_attributes(att2, att1))
 
 	all_instructions_per_goal[convert_goallist_to_goalstr(g)] = instructions
 
@@ -57,15 +58,21 @@ class TeacherSpeechPolicy():
 	def __init__(self, all_instructions_per_goal, teacher_mode):
 	
 		self.all_instructions_per_goal = all_instructions_per_goal
+		self.goal_space_str = [g for g in all_instructions_per_goal.keys()]
 		self.teacher_mode = teacher_mode
 
 		self.initialize_policy()
+
+		if self.teacher_mode == 'pedagogical':
+			self.nb_iter_pedagogical_teacher = 1000
+			self.proba_boost = 0.1
+			self.learn_pedagogical_policy()
 
 	def initialize_policy(self):
 
 		self.speech_policy = {}
 
-		for g in self.all_instructions_per_goal.keys():
+		for g in self.goal_space_str:
 			instruction_probas = np.array([1]*len(self.all_instructions_per_goal[g])) / len(self.all_instructions_per_goal[g])
 			self.speech_policy[g] = instruction_probas
 
@@ -76,7 +83,7 @@ class TeacherSpeechPolicy():
 		elif self.teacher_mode == 'shapes_preference' or self.teacher_mode == 'colors_preference':
 
 			# increase sampling probability for instructions referring to shapes
-			for g in self.all_instructions_per_goal.keys():
+			for g in self.goal_space_str:
 				for instruction_idx, instruction in enumerate(self.all_instructions_per_goal[g]):
 					attributes_instruction = get_attributes_from_instruction(instruction)
 
@@ -102,7 +109,7 @@ class TeacherSpeechPolicy():
 
 	def normalize_speech_policy(self):
 
-		for g in self.all_instructions_per_goal.keys():
+		for g in self.goal_space_str:
 
 			sum_probas = np.sum(self.speech_policy[g])
 		
@@ -110,27 +117,105 @@ class TeacherSpeechPolicy():
 
 		return
 		
-	def learn_pedagogical_policy(self):
+	def learn_pedagogical_policy(self, learning=False):
 
-		# for loop of training to infer own goals from instructions
+		if learning:
 
-		# sample random goal
+			# for loop of training to infer own goals from instructions
 
-		# sample instruction
+			for it in range(self.nb_iter_pedagogical_teacher):
 
-		# P(G/I)
+				if it % 1000 == 0:
+					print(it, '/', str(self.nb_iter_pedagogical_teacher))
 
-		# infer g by sampling P(G/I)
+				# sample random goal
 
-		# if correct, reinforce, if not correct, lower
+				sampled_goal = self.sample_goals(size=1)[0]
 
-		# normalize
+				# sample instruction
+
+				sampled_instruction = self.tell([sampled_goal])[0]
+
+				# P(G/I)
+
+				proba_goal_instruction = []
+
+				for g in self.goal_space_str:
+
+					if sampled_instruction in self.all_instructions_per_goal[g]:
+
+						#proba_instruction = self.speech_policy[g][self.all_instructions_per_goal[g].index(sampled_instruction)]
+						proba_instruction = 1
+
+					else:
+
+						proba_instruction = 0
+
+					proba_goal_instruction.append(proba_instruction)
+
+				proba_goal_instruction = np.array(proba_goal_instruction)
+
+				proba_goal_instruction = proba_goal_instruction / sum(proba_goal_instruction)
+
+				# infer g by sampling P(G/I)
+
+				goal_inferred = np.random.choice(self.goal_space_str, p=proba_goal_instruction)
+
+				# if correct, reinforce, if not correct, lower
+
+				instruction_proba_index = self.all_instructions_per_goal[sampled_goal].index(sampled_instruction)
+
+				if goal_inferred == sampled_goal:
+
+					for idx, proba in enumerate(self.speech_policy[sampled_goal]):
+						if idx == instruction_proba_index:
+							self.speech_policy[sampled_goal][idx] += self.proba_boost
+						'''else:
+							if self.speech_policy[sampled_goal][idx] > self.proba_boost:
+								self.speech_policy[sampled_goal][idx] -= self.proba_boost
+							else:
+								self.speech_policy[sampled_goal][idx] = 0'''
+
+				else:
+
+					for idx, proba in enumerate(self.speech_policy[sampled_goal]):
+						if idx == instruction_proba_index:
+
+							if self.speech_policy[sampled_goal][idx] > self.proba_boost:
+								self.speech_policy[sampled_goal][idx] -= self.proba_boost
+							else:
+								self.speech_policy[sampled_goal][idx] = 0
+
+						'''else:
+							self.speech_policy[sampled_goal][idx] += self.proba_boost'''
+
+				# normalize
+
+				self.normalize_speech_policy()
+
+		else:
+
+			for g in self.goal_space_str:
+
+				for instruction in all_instructions_per_goal[g]:
+
+					instruction_proba_index = self.all_instructions_per_goal[g].index(instruction)
+
+					for g2 in self.goal_space_str:
+
+						if g != g2:
+
+							if instruction in self.all_instructions_per_goal[g2]:
+
+								self.speech_policy[g][instruction_proba_index] = 0
+
+			self.normalize_speech_policy()
 
 		return
 
 	def sample_goals(self, size):
 
-		sampled_goal = np.random.choice(list(all_instructions_per_goal.keys()), size=size)
+		sampled_goal = np.random.choice(self.goal_space_str, size=size)
 
 		return sampled_goal
 
@@ -150,6 +235,8 @@ class TeacherSpeechPolicy():
 			
 
 		return instructions
+
+	#def evaluate_policy_inference(self, )
 
 
 
@@ -183,7 +270,16 @@ sampled_goals = teacher.sample_goals(size=2)
 print(sampled_goals)
 instructions = teacher.tell(sampled_goals, verbose=True)
 print(instructions)
+
+print('Pedagogical teacher speech policy ---------------------')
+teacher = TeacherSpeechPolicy(all_instructions_per_goal, teacher_mode='pedagogical')
+
+
+# Sampling phase
 print(teacher.speech_policy)
+for g in teacher.goal_space_str:
+	print(teacher.tell([g]))
 print(all_instructions_per_goal)
 
-import pdb;pdb.set_trace()
+
+#import pdb;pdb.set_trace()
