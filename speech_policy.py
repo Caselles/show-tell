@@ -117,7 +117,7 @@ class TeacherSpeechPolicy():
 
 		return
 		
-	def learn_pedagogical_policy(self, learning=False):
+	def learn_pedagogical_policy(self, learning=True):
 
 		if learning:
 
@@ -280,6 +280,25 @@ print(teacher.speech_policy)
 for g in teacher.goal_space_str:
 	print(teacher.tell([g]))
 print(all_instructions_per_goal)
+
+
+# PLOTS ##########################
+
+from plots import *
+visualize_all_instructions(all_instructions_per_goal)
+
+teacher = TeacherSpeechPolicy(all_instructions_per_goal, teacher_mode='naive')
+visualize_speech_policy(all_instructions_per_goal, teacher.speech_policy, teacher.teacher_mode)
+
+teacher = TeacherSpeechPolicy(all_instructions_per_goal, teacher_mode='colors_preference')
+visualize_speech_policy(all_instructions_per_goal, teacher.speech_policy, teacher.teacher_mode)
+
+teacher = TeacherSpeechPolicy(all_instructions_per_goal, teacher_mode='shapes_preference')
+visualize_speech_policy(all_instructions_per_goal, teacher.speech_policy, teacher.teacher_mode)
+
+teacher = TeacherSpeechPolicy(all_instructions_per_goal, teacher_mode='pedagogical')
+visualize_speech_policy(all_instructions_per_goal, teacher.speech_policy, teacher.teacher_mode)
+
 
 
 #import pdb;pdb.set_trace()
