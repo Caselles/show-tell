@@ -22,4 +22,5 @@ export OMPI_MCA_btl_openib_allow_ib=1
 export OMPI_MCA_btl_openib_warn_default_gid_prefix=0
 export OMPI_MCA_mpi_warn_on_fork=0
 
-srun python -u -B train_learner.py --cuda --learner-from-demos True --teacher-mode pedagogical --pragmatic-learner True --sqil True  --compute-statistically-significant-results True --predictability True --reachability True --n-cycles 2 --n-epochs 2 --save-freq 1 2>&1 
+srun python -u -B train_learner_show-tell.py --cuda --n-epochs 250 --save-dir output_learner/ --teacher-action-mode naive --learner-from-demos True --sqil True --teacher-language-mode colors_preference_R1 --learner-language-mode pragmatic --compute-statistically-significant-results True --predictability True --reachability True --no-biased-init 1 --n-cycles 2 2>&1 
+

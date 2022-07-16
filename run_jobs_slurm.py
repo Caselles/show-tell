@@ -13,8 +13,8 @@ scratch = os.environ['SCRATCH']
 # Make top level directories
 mkdir_p(job_directory)
 
-nb_seeds = 1
-teachers = ['naive', 'pedagogical']
+nb_seeds = 5
+teachers = ['naive', 'pedagogical', 'colors_preference_R1', 'shapes_preference_R1']
 learners = ['literal', 'pragmatic']
 
 for i in range(nb_seeds):
@@ -49,10 +49,7 @@ for i in range(nb_seeds):
                 fh.writelines("export OMPI_MCA_btl_openib_warn_default_gid_prefix=0\n")
                 fh.writelines("export OMPI_MCA_mpi_warn_on_fork=0\n")
 
-                if learner == 'pragmatic':
-                    fh.writelines("srun python -u -B train_learner.py --cuda --learner-from-demos True --teacher-mode {} --sqil True --pragmatic-learner True --compute-statistically-significant-results True --predictability True --reachability True --save-dir '{}/' 2>&1 ".format(teacher, job_directory + '/' + config))
-                else:
-                    fh.writelines("srun python -u -B train_learner.py --cuda --learner-from-demos True --teacher-mode {} --sqil True --compute-statistically-significant-results True --predictability True --reachability True --save-dir '{}/' 2>&1 ".format(teacher, job_directory + '/' + config))
+                fh.writelines("srun python -u -B train_learner_show-tell.py --cuda --n-epochs 400 --teacher-action-mode naive --learner-from-demos True --sqil True --teacher-language-mode {} --learner-language-mode {} --no-biased-init 1 --n-cycles 2 --save-dir '{}/' 2>&1 ".format(teacher, learner, job_directory + '/' + config))
 
             os.system("sbatch %s" % job_file)
             sleep(1)
