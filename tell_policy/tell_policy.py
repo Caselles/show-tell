@@ -141,7 +141,7 @@ class TellPolicy():
 
 					if goal_ind == 0:
 
-						valid_instructions = ['Put red next to striped.', 'Put striped next to red.']
+						valid_instructions = ['Put blue next to plain.', 'Put plain next to blue.']
 
 					if goal_ind == 1:
 
@@ -155,7 +155,7 @@ class TellPolicy():
 
 					if goal_ind == 0:
 
-						valid_instructions = ['Put red next to striped.', 'Put striped next to red.']
+						valid_instructions = ['Put blue next to plain.', 'Put plain next to blue.']
 
 					if goal_ind == 1:
 

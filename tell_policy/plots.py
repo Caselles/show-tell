@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from matplotlib import cm
 
-def visualize_speech_policy(all_instructions_per_goal, speech_policy, teacher_mode):
+def visualize_speech_policy(path, all_instructions_per_goal, speech_policy, teacher_mode):
 
 	greens = cm.get_cmap('Greens', 128)
 
@@ -54,7 +54,7 @@ def visualize_speech_policy(all_instructions_per_goal, speech_policy, teacher_mo
 	#table.set_fontsize(40)
 	#table.scale(1.5, 1.5) 
 	   
-	plt.savefig(teacher_mode+'_speech_policy.pdf') 
+	plt.savefig(path + teacher_mode+'_speech_policy.pdf') 
 
 
 
@@ -116,4 +116,6 @@ def visualize_all_instructions(all_instructions_per_goal):
 
 
 	return
+
+
 

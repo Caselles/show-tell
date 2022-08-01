@@ -17,6 +17,7 @@ import time
 from mpi_utils import logger
 from language.build_dataset import sentence_from_configuration
 from test_learner_mpi import run_test_mpi
+from tell_policy.plots import visualize_speech_policy
 
 def get_env_params(env):
     obs = env.reset()
@@ -164,7 +165,8 @@ def launch(args):
                         #print(converted_sampled_goal, inferred_goal_feedback, 'SUCCESS')
                     else:
                         feedback = 0
-                        policy.language_tools.update_policy_learner_pragmatism(inferred_goal[0], learner_instruction_feedback[0])
+                        if args.learner_language_mode == 'pragmatic':
+                            policy.language_tools.update_policy_learner_pragmatism(inferred_goal[0], learner_instruction_feedback[0])
                         #print(converted_sampled_goal, inferred_goal_feedback, 'FAIL')
 
                     nb_of_communications += 1 
@@ -362,6 +364,8 @@ def launch(args):
                 # Saving policy models
                 if epoch % args.save_freq == 0:
                     policy.save(model_path, epoch)
+                    visualize_speech_policy(model_path, policy.language_tools.learner_goal_instruction_table, policy.language_tools.tell_policy, args.learner_language_mode)
+                    visualize_speech_policy(model_path, teacher.language_tools.all_instructions_per_goal, teacher.language_tools.tell_policy, args.teacher_language_mode)
                     #policy.buffer.save_buffer(model_path, epoch)
                 if rank==0: logger.info('\tEpoch #{}: SR: {}'.format(epoch, global_sr))
 

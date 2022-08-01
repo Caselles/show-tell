@@ -34,7 +34,7 @@ class Teacher:
         if args.teacher_action_mode == 'pedagogical':
             self.path_demos = '/media/gohu/backup_data/postdoc/show-tell/demos_datasets/pedagogical_teacher_1000/'
 
-        self.nb_available_demos = len(os.listdir(self.path_demos+'goal_0/'))
+        #self.nb_available_demos = len(os.listdir(self.path_demos+'goal_0/'))
 
         self.initialize_tell_policy(args)
 

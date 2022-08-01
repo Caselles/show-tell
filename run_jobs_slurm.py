@@ -25,7 +25,7 @@ for i in range(nb_seeds):
 
             with open(job_file, 'w') as fh:
                 fh.writelines("#!/bin/bash\n")
-                fh.writelines("#SBATCH --account=kcr@gpu\n")
+                fh.writelines("#SBATCH --account=kcr@v100\n")
                 fh.writelines("#SBATCH --job-name=main_{}\n".format(config))
                 fh.writelines("#SBATCH --qos=qos_gpu-t3\n")
                 fh.writelines("#SBATCH --output=main_{}%_%j.out\n".format(config))
@@ -33,7 +33,8 @@ for i in range(nb_seeds):
                 fh.writelines("#SBATCH --time=19:59:59\n")
                 fh.writelines("#SBATCH --ntasks=24\n")
                 fh.writelines("#SBATCH --ntasks-per-node=1\n")
-                fh.writelines("#SBATCH --mem-per-cpu=15024\n")
+                #fh.writelines("#SBATCH --mem-per-cpu=15024\n")
+                fh.writelines("#SBATCH --cpus-per-task=4\n")
                 fh.writelines("#SBATCH --gres=gpu:1\n")
                 fh.writelines("#SBATCH --hint=nomultithread\n")
                 fh.writelines("#SBATCH --array=0-0\n")
