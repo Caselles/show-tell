@@ -26,11 +26,11 @@ colors = [[0, 0.447, 0.7410], [0.85, 0.325, 0.098],  [0.466, 0.674, 0.188], [0.9
 #  [0.466, 0.674, 0.188], [0.929, 0.694, 0.125],
 #  [0.3010, 0.745, 0.933], [0.635, 0.078, 0.184]]
 
-RESULTS_PATH = '/home/akakzia/DECSTR/models/'
-SAVE_PATH = '/home/akakzia/DECSTR/plots/'
-TO_PLOT = ['Partial']#'Architecture', 'Rewards', 'Masks', 'Partial']
+RESULTS_PATH = '/home/gohu/workspace/postdoc/show-tell/gangstr_predicates_instructions/output_learner/'
+SAVE_PATH = '/home/gohu/workspace/postdoc/show-tell/gangstr_predicates_instructions/plots/'
+TO_PLOT = ['curves']#'Architecture', 'Rewards', 'Masks', 'Partial']
 
-NB_CLASSES = 6 # 12 for 5 blocks
+NB_CLASSES = 3 # 12 for 5 blocks
 
 LINE = 'mean'
 ERR = 'std'
@@ -42,11 +42,11 @@ MARKERSIZE = 30
 ALPHA = 0.3
 ALPHA_TEST = 0.05
 MARKERS = ['o', 'v', 's', 'P', 'D', 'X', "*", 'v', 's', 'p', 'P', '1']
-FREQ = 20
+FREQ = 5
 NB_BUCKETS = 5
 NB_EPS_PER_EPOCH = 2400
 NB_VALID_GOALS = 35
-LAST_EP = 300
+LAST_EP = 200
 LIM = NB_EPS_PER_EPOCH * LAST_EP / 1000 + 30
 line, err_min, err_plus = get_stat_func(line=LINE, err=ERR)
 COMPRESSOR = CompressPDF(4)
@@ -118,6 +118,7 @@ def check_length_and_seeds(experiment_path):
     max_seeds = 0
     min_len = 1e6
     min_seeds = 1e6
+    #import pdb;pdb.set_trace()
 
     for cond in conditions:
         cond_path = experiment_path + cond + '/'
@@ -283,6 +284,7 @@ def plot_lp_av(max_len, experiment_path, folder, true_buckets=True):
     # ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
     save_fig(path=SAVE_PATH + PLOT + '_lp.pdf', artists=artists)
 
+
 def plot_sr_av(max_len, experiment_path, folder, true_buckets=False):
 
     condition_path = experiment_path + folder + '/'
@@ -355,6 +357,7 @@ def plot_sr_av(max_len, experiment_path, folder, true_buckets=False):
         for i in range(SR.shape[0]):
             sr_buckets.append(SR[i])
         sr_buckets = np.array(sr_buckets)
+        #import pdb;pdb.set_trace()
         sr_data[i_run, :, :sr_buckets.shape[1]] = sr_buckets.copy()
         global_sr[i_run, :all_sr.size] = all_sr.copy()
 
@@ -368,9 +371,13 @@ def plot_sr_av(max_len, experiment_path, folder, true_buckets=False):
     sr_per_cond_stats[:, :, 1] = err_min(sr_data)
     sr_per_cond_stats[:, :, 2] = err_plus(sr_data)
     av = line(global_sr)
+    x = x[:11]
+    x_eps = x_eps[:11]
+    #import pdb;pdb.set_trace()
     for i in range(NB_CLASSES):
         plt.plot(x_eps, sr_per_cond_stats[i, x, 0], color=colors[i], marker=MARKERS[i], markersize=MARKERSIZE, linewidth=LINEWIDTH)
         plt.fill_between(x_eps, sr_per_cond_stats[i, x, 1], sr_per_cond_stats[i, x, 2], color=colors[i], alpha=ALPHA)
+    #import pdb;pdb.set_trace()
     plt.plot(x_eps, av[x], color=[0.3]*3, linestyle='--', linewidth=LINEWIDTH // 2)
     leg = plt.legend(['Class {}'.format(i+1) for i in range(NB_CLASSES)] + ['Global'],
                      loc='upper center',
@@ -409,6 +416,10 @@ def get_mean_sr(experiment_path, max_len, max_seeds, conditions=None, labels=Non
     sr_per_cond_stats[:, :, 2] = err_plus(sr)
 
 
+    #sr_per_cond_stats[3, :, 1] = sr_per_cond_stats[3, :, 1] - (sr_per_cond_stats[0, :, 0] - sr_per_cond_stats[0, :, 1])
+    #sr_per_cond_stats[3, :, 2] = sr_per_cond_stats[3, :, 2] + (sr_per_cond_stats[0, :, 0] - sr_per_cond_stats[0, :, 1])
+
+
     x_eps = np.arange(0, (LAST_EP + 1) * NB_EPS_PER_EPOCH, NB_EPS_PER_EPOCH * FREQ) / 1000
     x = np.arange(0, LAST_EP + 1, FREQ)
     if 'ablation' in experiment_path:
@@ -428,9 +439,9 @@ def get_mean_sr(experiment_path, max_len, max_seeds, conditions=None, labels=Non
                 else:
                     p_vals[i_cond].append(1)
 
-    artists, ax = setup_figure(xlabel='Episodes (x$10^3$)',
+    artists, ax = setup_figure(xlabel=' ',
                                # xlabel='Epochs',
-                               ylabel='Success Rate',
+                               ylabel=' ',
                                xlim=[-1, LIM],
                                ylim=[-0.02, 1 -0.02 + 0.05 * (len(conditions) + 1)])
 
@@ -445,18 +456,18 @@ def get_mean_sr(experiment_path, max_len, max_seeds, conditions=None, labels=Non
                 plt.scatter(x=x_eps[inds_sign], y=np.ones([inds_sign.size]) - 0.04 + 0.05 * i_cond, marker='*', color=colors[i_cond], s=1300)
     if labels is None:
         labels = conditions
-    leg = plt.legend(labels,
+    '''leg = plt.legend(labels,
                      loc='upper center',
                      bbox_to_anchor=(0.5, 1.15),
-                     ncol=2 if len(conditions) == 4 else 3,
+                     ncol=2,
                      fancybox=True,
                      shadow=True,
-                     prop={'size': 50, 'weight': 'bold'},
+                     prop={'size': 40, 'weight': 'bold'},
                      markerscale=1,
                      )
     for l in leg.get_lines():
         l.set_linewidth(7.0)
-    artists += (leg,)
+    artists += (leg,)'''
     ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
     save_fig(path=SAVE_PATH + PLOT + '.pdf', artists=artists)
     return sr_per_cond_stats.copy()
@@ -466,7 +477,7 @@ if __name__ == '__main__':
     for PLOT in TO_PLOT:
         print('\n\tPlotting', PLOT)
         # if PLOT == 'init_study':
-        experiment_path = RESULTS_PATH + PLOT + '/'
+        experiment_path = RESULTS_PATH + '/'
 
         # plot c, lp , p and sr for each run
         # plot_c_lp_p_sr(experiment_path)
@@ -474,7 +485,12 @@ if __name__ == '__main__':
         max_len, max_seeds, min_len, min_seeds = check_length_and_seeds(experiment_path=experiment_path)
         # plot_c_lp_p_sr(experiment_path)
 
-        plot_sr_av(max_len, experiment_path, 'GANGSTR')
+        #plot_sr_av(max_len, experiment_path, 'reward_func_learned_v1')
+        conditions = ['naive_literal', 'pedagogical_literal', 'no_demo', '10percent_demos', '50percent_demos', '100percent_demos']
+        labels = ['Naive + Literal', 'Pedagogical  + Literal ' , 'No Demos', '10 percent demos', '50 percent demos', '100 percent demos']
+        get_mean_sr(experiment_path, max_len, max_seeds, conditions, labels, ref='naive_literal')
+
+
         # if PLOT == 'Architecture':
         #     conditions = ['GANGSTR', 'Interaction Graph']
         #     labels = ['GANGSTR', 'Interaction Graph']

@@ -26,11 +26,12 @@ colors = [[0, 0.447, 0.7410], [0.85, 0.325, 0.098],  [0.466, 0.674, 0.188], [0.9
 #  [0.466, 0.674, 0.188], [0.929, 0.694, 0.125],
 #  [0.3010, 0.745, 0.933], [0.635, 0.078, 0.184]]
 
-RESULTS_PATH = '/home/akakzia/DECSTR/models/'
-SAVE_PATH = '/home/akakzia/DECSTR/plots/'
-TO_PLOT = ['Partial']#'Architecture', 'Rewards', 'Masks', 'Partial']
+RESULTS_PATH = '/media/gohu/backup_data/postdoc/show-tell/results_zay/job/'
+SAVE_PATH = '/home/gohu/workspace/postdoc/show-tell/gangstr_predicates_instructions/plots/'
+#TO_PLOT = ['simple-goal-space-language-10-seeds']
+TO_PLOT = ['simple-goal-space-language-training-speed-error']
 
-NB_CLASSES = 6 # 12 for 5 blocks
+NB_CLASSES = 3 # 12 for 5 blocks
 
 LINE = 'mean'
 ERR = 'std'
@@ -42,11 +43,11 @@ MARKERSIZE = 30
 ALPHA = 0.3
 ALPHA_TEST = 0.05
 MARKERS = ['o', 'v', 's', 'P', 'D', 'X', "*", 'v', 's', 'p', 'P', '1']
-FREQ = 20
+FREQ = 10
 NB_BUCKETS = 5
 NB_EPS_PER_EPOCH = 2400
 NB_VALID_GOALS = 35
-LAST_EP = 300
+LAST_EP = 399
 LIM = NB_EPS_PER_EPOCH * LAST_EP / 1000 + 30
 line, err_min, err_plus = get_stat_func(line=LINE, err=ERR)
 COMPRESSOR = CompressPDF(4)
@@ -58,7 +59,7 @@ COMPRESSOR = CompressPDF(4)
 
 
 def setup_figure(xlabel=None, ylabel=None, xlim=None, ylim=None):
-    fig = plt.figure(figsize=(22, 15), frameon=False)
+    fig = plt.figure(figsize=(35, 20), frameon=False)
     ax = fig.add_subplot(111)
     ax.spines['top'].set_linewidth(6)
     ax.spines['right'].set_linewidth(6)
@@ -118,6 +119,7 @@ def check_length_and_seeds(experiment_path):
     max_seeds = 0
     min_len = 1e6
     min_seeds = 1e6
+    #import pdb;pdb.set_trace()
 
     for cond in conditions:
         cond_path = experiment_path + cond + '/'
@@ -283,6 +285,7 @@ def plot_lp_av(max_len, experiment_path, folder, true_buckets=True):
     # ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
     save_fig(path=SAVE_PATH + PLOT + '_lp.pdf', artists=artists)
 
+
 def plot_sr_av(max_len, experiment_path, folder, true_buckets=False):
 
     condition_path = experiment_path + folder + '/'
@@ -355,6 +358,7 @@ def plot_sr_av(max_len, experiment_path, folder, true_buckets=False):
         for i in range(SR.shape[0]):
             sr_buckets.append(SR[i])
         sr_buckets = np.array(sr_buckets)
+        #import pdb;pdb.set_trace()
         sr_data[i_run, :, :sr_buckets.shape[1]] = sr_buckets.copy()
         global_sr[i_run, :all_sr.size] = all_sr.copy()
 
@@ -368,9 +372,13 @@ def plot_sr_av(max_len, experiment_path, folder, true_buckets=False):
     sr_per_cond_stats[:, :, 1] = err_min(sr_data)
     sr_per_cond_stats[:, :, 2] = err_plus(sr_data)
     av = line(global_sr)
+    x = x[:11]
+    x_eps = x_eps[:11]
+    #import pdb;pdb.set_trace()
     for i in range(NB_CLASSES):
         plt.plot(x_eps, sr_per_cond_stats[i, x, 0], color=colors[i], marker=MARKERS[i], markersize=MARKERSIZE, linewidth=LINEWIDTH)
         plt.fill_between(x_eps, sr_per_cond_stats[i, x, 1], sr_per_cond_stats[i, x, 2], color=colors[i], alpha=ALPHA)
+    #import pdb;pdb.set_trace()
     plt.plot(x_eps, av[x], color=[0.3]*3, linestyle='--', linewidth=LINEWIDTH // 2)
     leg = plt.legend(['Class {}'.format(i+1) for i in range(NB_CLASSES)] + ['Global'],
                      loc='upper center',
@@ -390,6 +398,7 @@ def get_mean_sr(experiment_path, max_len, max_seeds, conditions=None, labels=Non
     if conditions is None:
         conditions = os.listdir(experiment_path)
     sr = np.zeros([max_seeds, len(conditions), LAST_EP + 1 ])
+    x_eps_all = np.zeros([max_seeds, len(conditions), LAST_EP + 1 ])
     sr.fill(np.nan)
     for i_cond, cond in enumerate(conditions):
         if cond == ref:
@@ -400,7 +409,15 @@ def get_mean_sr(experiment_path, max_len, max_seeds, conditions=None, labels=Non
             run_path = cond_path + run + '/'
             data_run = pd.read_csv(run_path + 'progress.csv')
             all_sr = np.mean(np.array([data_run['Eval_SR_{}'.format(i+1)][:LAST_EP + 1] for i in range(NB_CLASSES)]), axis=0)
+            x_eps = np.array(data_run['total_nb_of_communications'])[:LAST_EP+1]
+            #import pdb;pdb.set_trace()
             sr[i_run, i_cond, :all_sr.size] = all_sr.copy()
+            x_eps_all[i_run, i_cond] = x_eps
+
+    x_eps_all_mean = np.zeros([len(conditions), LAST_EP + 1 ])
+    for i_cond, cond in enumerate(conditions):
+
+        x_eps_all_mean[i_cond] = np.mean(x_eps_all[:, i_cond], axis=0)
 
 
     sr_per_cond_stats = np.zeros([len(conditions), LAST_EP + 1, 3])
@@ -408,9 +425,151 @@ def get_mean_sr(experiment_path, max_len, max_seeds, conditions=None, labels=Non
     sr_per_cond_stats[:, :, 1] = err_min(sr)
     sr_per_cond_stats[:, :, 2] = err_plus(sr)
 
+    #import pdb;pdb.set_trace()
 
-    x_eps = np.arange(0, (LAST_EP + 1) * NB_EPS_PER_EPOCH, NB_EPS_PER_EPOCH * FREQ) / 1000
+
+    #sr_per_cond_stats[3, :, 1] = sr_per_cond_stats[3, :, 1] - (sr_per_cond_stats[0, :, 0] - sr_per_cond_stats[0, :, 1])
+    #sr_per_cond_stats[3, :, 2] = sr_per_cond_stats[3, :, 2] + (sr_per_cond_stats[0, :, 0] - sr_per_cond_stats[0, :, 1])
+
+
+    #x_eps = np.arange(0, (LAST_EP + 1) * NB_EPS_PER_EPOCH, NB_EPS_PER_EPOCH * FREQ) / 1000
     x = np.arange(0, LAST_EP + 1, FREQ)
+    if 'ablation' in experiment_path:
+        sr[2, 3, 600] = 0.17
+    # compute p value wrt ref id
+    p_vals = dict()
+
+
+    sr_for_stars = np.zeros([max_seeds, len(conditions), int((LAST_EP + 1)) ])
+    sr_for_stars[:, 0, :] = sr[:, 0, :]
+
+
+    for i_cond, cond in enumerate(conditions):
+
+        print(cond)
+
+        if i_cond != 0:
+
+            indexes_to_take_for_sr_for_stars = []
+
+            for xxx in x_eps_all_mean[0]:
+
+                indexes_to_take_for_sr_for_stars.append(min(range(len(x_eps_all_mean[i_cond])), key=lambda i: abs(x_eps_all_mean[i_cond][i]-xxx)))
+
+            sr_for_stars[:, i_cond, :] = sr[:, i_cond, indexes_to_take_for_sr_for_stars]
+
+
+
+    #import pdb;pdb.set_trace()
+
+
+
+
+
+    for i_cond in range(len(conditions)):
+        if i_cond != ref_id:
+            p_vals[i_cond] = []
+            for i in x:
+                ref_inds = np.argwhere(~np.isnan(sr_for_stars[:, ref_id, i])).flatten()
+                other_inds = np.argwhere(~np.isnan(sr_for_stars[:, i_cond, i])).flatten()
+                if ref_inds.size > 1 and other_inds.size > 1:
+                    ref = sr_for_stars[:, ref_id, i][ref_inds]
+                    other = sr_for_stars[:, i_cond, i][other_inds]
+                    p_vals[i_cond].append(ttest_ind(ref, other, equal_var=False)[1])
+                else:
+                    p_vals[i_cond].append(1)
+
+    artists, ax = setup_figure(xlabel='Total number of teaching signals exchanged between Teacher and Learner',
+                               # xlabel='Epochs',
+                               ylabel='Goal Reaching Accuracy',
+                               xlim=[-1, 35000],
+                               ylim=[-0.02, 1 -0.02 + 0.05 * (len(conditions) + 1)])
+
+
+    for i in range(len(conditions)):
+        i_color = i
+        '''if i == 1: 
+            i_color = i+1
+        elif i >=2:
+            i_color = i+2'''
+        plt.plot(x_eps_all_mean[i][::FREQ], sr_per_cond_stats[i, x, 0], color=colors[i_color], marker=MARKERS[i_color], markersize=MARKERSIZE, linewidth=LINEWIDTH)
+        plt.fill_between(x_eps_all_mean[i][::FREQ], sr_per_cond_stats[i, x, 1], sr_per_cond_stats[i, x, 2], color=colors[i_color], alpha=ALPHA)
+
+    for i_cond in range(len(conditions)):
+        i_color = i_cond
+        '''if i_cond == 1: 
+            i_color = i_cond+1
+        elif i_cond >=2:
+            i_color = i_cond+2'''
+
+        if i_cond != ref_id:
+            inds_sign = np.argwhere(np.array(p_vals[i_cond]) < ALPHA_TEST).flatten()
+            if inds_sign.size > 0:
+                plt.scatter(x=x_eps_all_mean[0][::FREQ][inds_sign], y=np.ones([inds_sign.size])  + 0.05 * i_cond, marker='*', color=colors[i_color], s=1300)
+    if labels is None:
+        labels = conditions
+    leg = plt.legend(labels,
+                     loc='upper center',
+                     bbox_to_anchor=(0.5, 1.15),
+                     ncol=2,
+                     fancybox=True,
+                     shadow=True,
+                     prop={'size': 40, 'weight': 'bold'},
+                     markerscale=1,
+                     )
+    for l in leg.get_lines():
+        l.set_linewidth(7.0)
+    artists += (leg,)
+    ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
+    save_fig(path=SAVE_PATH + PLOT + '.pdf', artists=artists)
+    return sr_per_cond_stats.copy()
+
+def plot_training_speed(experiment_path, max_len, max_seeds, conditions=None, labels=None, ref='with_init'):
+    from numpy import diff
+    if conditions is None:
+        conditions = os.listdir(experiment_path)
+    sr = np.zeros([max_seeds, len(conditions), LAST_EP + 1 ])
+    x_eps_all = np.zeros([max_seeds, len(conditions), LAST_EP + 1 ])
+    diff_array = np.zeros([max_seeds, len(conditions), 39 ])
+    x = np.arange(0, LAST_EP + 1, FREQ)
+    sr.fill(np.nan)
+    for i_cond, cond in enumerate(conditions):
+        if cond == ref:
+            ref_id = i_cond
+        cond_path = experiment_path + cond + '/'
+        list_runs = sorted(os.listdir(cond_path))
+        for i_run, run in enumerate(list_runs):
+            run_path = cond_path + run + '/'
+            data_run = pd.read_csv(run_path + 'progress.csv')
+            all_sr = np.mean(np.array([data_run['Eval_SR_{}'.format(i+1)][:LAST_EP + 1] for i in range(NB_CLASSES)]), axis=0)
+            x_eps = np.array(data_run['total_nb_of_communications'])[:LAST_EP+1]
+            #import pdb;pdb.set_trace()
+            sr[i_run, i_cond, :all_sr.size] = all_sr.copy()
+            x_eps_all[i_run, i_cond] = x_eps
+            diff_array[i_run, i_cond] = diff(x_eps[x])/diff(x)
+
+
+    sr = x_eps_all
+
+    #import pdb;pdb.set_trace()
+
+    diffos = np.mean(diff_array, axis=0)
+
+    sr_per_cond_stats = np.zeros([len(conditions), LAST_EP + 1, 3])
+    sr_per_cond_stats[:, :, 0] = line(sr)
+    sr_per_cond_stats[:, :, 1] = err_min(sr)
+    sr_per_cond_stats[:, :, 2] = err_plus(sr)
+
+
+
+
+
+    #sr_per_cond_stats[3, :, 1] = sr_per_cond_stats[3, :, 1] - (sr_per_cond_stats[0, :, 0] - sr_per_cond_stats[0, :, 1])
+    #sr_per_cond_stats[3, :, 2] = sr_per_cond_stats[3, :, 2] + (sr_per_cond_stats[0, :, 0] - sr_per_cond_stats[0, :, 1])
+
+
+    #x_eps = np.arange(0, (LAST_EP + 1) * NB_EPS_PER_EPOCH, NB_EPS_PER_EPOCH * FREQ) / 1000
+    
     if 'ablation' in experiment_path:
         sr[2, 3, 600] = 0.17
     # compute p value wrt ref id
@@ -428,36 +587,160 @@ def get_mean_sr(experiment_path, max_len, max_seeds, conditions=None, labels=Non
                 else:
                     p_vals[i_cond].append(1)
 
-    artists, ax = setup_figure(xlabel='Episodes (x$10^3$)',
+    artists, ax = setup_figure(xlabel=' ',
                                # xlabel='Epochs',
-                               ylabel='Success Rate',
-                               xlim=[-1, LIM],
-                               ylim=[-0.02, 1 -0.02 + 0.05 * (len(conditions) + 1)])
+                               ylabel=' ',
+                               xlim=[-1, 400],
+                               ylim=[0,300])
 
     for i in range(len(conditions)):
-        plt.plot(x_eps, sr_per_cond_stats[i, x, 0], color=colors[i], marker=MARKERS[i], markersize=MARKERSIZE, linewidth=LINEWIDTH)
-        plt.fill_between(x_eps, sr_per_cond_stats[i, x, 1], sr_per_cond_stats[i, x, 2], color=colors[i], alpha=ALPHA)
+        #if 'pragmatic' in conditions[i]:
+        if True:
+            plt.plot(x[:-1], diffos[i], color=colors[i], marker=MARKERS[i], markersize=MARKERSIZE, linewidth=LINEWIDTH)
+            #plt.fill_between(x, sr_per_cond_stats[i, x, 1], sr_per_cond_stats[i, x, 2], color=colors[i], alpha=ALPHA)
 
-    for i_cond in range(len(conditions)):
+
+    '''pragmatic_lines = []
+
+    for i_cond, cond in enumerate(conditions):
+        if 'pragmatic' in cond:
+            points = [(x[0], sr_per_cond_stats[i_cond, x[0], 0]), (x[3], sr_per_cond_stats[i_cond, x[3], 0]), colors[i_cond]]
+            pragmatic_lines.append(points)
+
+    for line_plot in pragmatic_lines:
+        plt.axline(line_plot[0], line_plot[1], color=line_plot[2], linestyle="--", linewidth=10)'''
+
+
+    '''for i_cond in range(len(conditions)):
         if i_cond != ref_id:
             inds_sign = np.argwhere(np.array(p_vals[i_cond]) < ALPHA_TEST).flatten()
             if inds_sign.size > 0:
-                plt.scatter(x=x_eps[inds_sign], y=np.ones([inds_sign.size]) - 0.04 + 0.05 * i_cond, marker='*', color=colors[i_cond], s=1300)
+                plt.scatter(x=x_eps[inds_sign], y=np.ones([inds_sign.size]) - 0.04 + 0.05 * i_cond, marker='*', color=colors[i_cond], s=1300)'''
     if labels is None:
         labels = conditions
     leg = plt.legend(labels,
-                     loc='upper center',
+                     loc='lower center',
                      bbox_to_anchor=(0.5, 1.15),
-                     ncol=2 if len(conditions) == 4 else 3,
+                     ncol=2,
                      fancybox=True,
                      shadow=True,
-                     prop={'size': 50, 'weight': 'bold'},
+                     prop={'size': 40, 'weight': 'bold'},
                      markerscale=1,
                      )
     for l in leg.get_lines():
         l.set_linewidth(7.0)
     artists += (leg,)
-    ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
+    #ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
+    save_fig(path=SAVE_PATH + PLOT + '.pdf', artists=artists)
+    return sr_per_cond_stats.copy()
+
+
+def plot_training_speed_error(experiment_path, max_len, max_seeds, conditions=None, labels=None, ref='with_init'):
+    from numpy import diff
+    if conditions is None:
+        conditions = os.listdir(experiment_path)
+    sr = np.zeros([max_seeds, len(conditions), LAST_EP + 1 ])
+    x_eps_all = np.zeros([max_seeds, len(conditions), LAST_EP + 1 ])
+    diff_array = np.zeros([max_seeds, len(conditions), 39 ])
+    x = np.arange(0, LAST_EP + 1, FREQ)
+    sr.fill(np.nan)
+    for i_cond, cond in enumerate(conditions):
+        if cond == ref:
+            ref_id = i_cond
+        cond_path = experiment_path + cond + '/'
+        list_runs = sorted(os.listdir(cond_path))
+        for i_run, run in enumerate(list_runs):
+            run_path = cond_path + run + '/'
+            data_run = pd.read_csv(run_path + 'progress.csv')
+            all_sr = np.mean(np.array([data_run['Eval_SR_{}'.format(i+1)][:LAST_EP + 1] for i in range(NB_CLASSES)]), axis=0)
+            x_eps = np.array(data_run['total_nb_of_communications'])[:LAST_EP+1] - np.array(data_run['episodes'])[:LAST_EP+1]
+            #import pdb;pdb.set_trace()
+            sr[i_run, i_cond, :all_sr.size] = all_sr.copy()
+            x_eps_all[i_run, i_cond] = x_eps
+
+
+    sr = x_eps_all
+
+    
+
+    sr_per_cond_stats = np.zeros([len(conditions), LAST_EP + 1, 3])
+    sr_per_cond_stats[:, :, 0] = line(sr)
+    sr_per_cond_stats[:, :, 1] = err_min(sr)
+    sr_per_cond_stats[:, :, 2] = err_plus(sr)
+
+
+    #import pdb;pdb.set_trace()
+
+
+
+
+    #sr_per_cond_stats[3, :, 1] = sr_per_cond_stats[3, :, 1] - (sr_per_cond_stats[0, :, 0] - sr_per_cond_stats[0, :, 1])
+    #sr_per_cond_stats[3, :, 2] = sr_per_cond_stats[3, :, 2] + (sr_per_cond_stats[0, :, 0] - sr_per_cond_stats[0, :, 1])
+
+
+    #x_eps = np.arange(0, (LAST_EP + 1) * NB_EPS_PER_EPOCH, NB_EPS_PER_EPOCH * FREQ) / 1000
+    
+    if 'ablation' in experiment_path:
+        sr[2, 3, 600] = 0.17
+    # compute p value wrt ref id
+    p_vals = dict()
+    for i_cond in range(len(conditions)):
+        if i_cond != ref_id:
+            p_vals[i_cond] = []
+            for i in x:
+                ref_inds = np.argwhere(~np.isnan(sr[:, ref_id, i])).flatten()
+                other_inds = np.argwhere(~np.isnan(sr[:, i_cond, i])).flatten()
+                if ref_inds.size > 1 and other_inds.size > 1:
+                    ref = sr[:, ref_id, i][ref_inds]
+                    other = sr[:, i_cond, i][other_inds]
+                    p_vals[i_cond].append(ttest_ind(ref, other, equal_var=False)[1])
+                else:
+                    p_vals[i_cond].append(1)
+
+    artists, ax = setup_figure(xlabel=' ',
+                               # xlabel='Epochs',
+                               ylabel=' ',
+                               xlim=[-1, 200],
+                               ylim=[0,20000])
+
+    for i in range(len(conditions)):
+        #if 'pragmatic' in conditions[i]:
+        if True:
+            plt.plot(x, sr_per_cond_stats[i, x, 0], color=colors[i], marker=MARKERS[i], markersize=MARKERSIZE, linewidth=LINEWIDTH)
+            #plt.fill_between(x, sr_per_cond_stats[i, x, 1], sr_per_cond_stats[i, x, 2], color=colors[i], alpha=ALPHA)
+
+
+    '''pragmatic_lines = []
+
+    for i_cond, cond in enumerate(conditions):
+        if 'pragmatic' in cond:
+            points = [(x[0], sr_per_cond_stats[i_cond, x[0], 0]), (x[3], sr_per_cond_stats[i_cond, x[3], 0]), colors[i_cond]]
+            pragmatic_lines.append(points)
+
+    for line_plot in pragmatic_lines:
+        plt.axline(line_plot[0], line_plot[1], color=line_plot[2], linestyle="--", linewidth=10)'''
+
+
+    '''for i_cond in range(len(conditions)):
+        if i_cond != ref_id:
+            inds_sign = np.argwhere(np.array(p_vals[i_cond]) < ALPHA_TEST).flatten()
+            if inds_sign.size > 0:
+                plt.scatter(x=x_eps[inds_sign], y=np.ones([inds_sign.size]) - 0.04 + 0.05 * i_cond, marker='*', color=colors[i_cond], s=1300)'''
+    if labels is None:
+        labels = conditions
+    leg = plt.legend(labels,
+                     loc='lower center',
+                     bbox_to_anchor=(0.5, 1.15),
+                     ncol=2,
+                     fancybox=True,
+                     shadow=True,
+                     prop={'size': 40, 'weight': 'bold'},
+                     markerscale=1,
+                     )
+    for l in leg.get_lines():
+        l.set_linewidth(7.0)
+    artists += (leg,)
+    #ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
     save_fig(path=SAVE_PATH + PLOT + '.pdf', artists=artists)
     return sr_per_cond_stats.copy()
 
@@ -466,7 +749,7 @@ if __name__ == '__main__':
     for PLOT in TO_PLOT:
         print('\n\tPlotting', PLOT)
         # if PLOT == 'init_study':
-        experiment_path = RESULTS_PATH + PLOT + '/'
+        experiment_path = RESULTS_PATH + '/'
 
         # plot c, lp , p and sr for each run
         # plot_c_lp_p_sr(experiment_path)
@@ -474,7 +757,35 @@ if __name__ == '__main__':
         max_len, max_seeds, min_len, min_seeds = check_length_and_seeds(experiment_path=experiment_path)
         # plot_c_lp_p_sr(experiment_path)
 
-        plot_sr_av(max_len, experiment_path, 'GANGSTR')
+        #plot_sr_av(max_len, experiment_path, 'reward_func_learned_v1')
+        conditions = ['naive_literal', 'pedagogical_literal', 'pedagogical_pragmatic', 'naive_pragmatic',
+        'colors_preference_R1_literal', 'shapes_preference_R1_literal', 'colors_preference_R1_pragmatic', 'shapes_preference_R1_pragmatic']
+        labels = ['Naive + Literal', 'Pedagogical + Literal', 'Pedagogical + Pragmatic', 'Naive + Pragmatic',
+        'Colors Preference + Literal', 'Shapes Preference + Literal', 'Colors Preference + Pragmatic', 'Shapes Preference + Pragmatic']
+        #get_mean_sr(experiment_path, max_len, max_seeds, conditions, labels, ref='naive_literal')
+        plot_training_speed_error(experiment_path, max_len, max_seeds, conditions, labels, ref='naive_literal')
+
+        '''conditions = ['naive_literal', 'pedagogical_literal', 'pedagogical_pragmatic', 'naive_pragmatic']
+        labels = ['Naive + Literal', 'Pedagogical + Literal', 'Pedagogical + Pragmatic', 'Naive + Pragmatic']
+        get_mean_sr(experiment_path, max_len, max_seeds, conditions, labels, ref='naive_literal')'''
+
+        '''conditions = ['naive_literal', 'pedagogical_literal', 'pedagogical_pragmatic',
+        'colors_preference_R1_literal', 'shapes_preference_R1_literal']
+        labels = ['Naive + Literal', 'Pedagogical + Literal', 'Pedagogical + Pragmatic', 
+        'Colors Preference + Literal', 'Shapes Preference + Literal']
+        get_mean_sr(experiment_path, max_len, max_seeds, conditions, labels, ref='naive_literal')'''
+
+        '''conditions = ['naive_literal', 'pedagogical_literal', 'pedagogical_pragmatic', 'naive_pragmatic',]
+        labels = ['Naive + Literal', 'Pedagogical + Literal', 'Pedagogical + Pragmatic', 'Naive + Pragmatic']
+        get_mean_sr(experiment_path, max_len, max_seeds, conditions, labels, ref='naive_literal')'''
+
+        '''conditions = ['naive_literal', 'pedagogical_pragmatic',
+        'colors_preference_R1_literal', 'shapes_preference_R1_literal', 'colors_preference_R1_pragmatic', 'shapes_preference_R1_pragmatic']
+        labels = ['Naive + Literal','Pedagogical + Pragmatic',
+        'Colors Preference + Literal', 'Shapes Preference + Literal', 'Colors Preference + Pragmatic', 'Shapes Preference + Pragmatic']
+        get_mean_sr(experiment_path, max_len, max_seeds, conditions, labels, ref='naive_literal')'''
+
+
         # if PLOT == 'Architecture':
         #     conditions = ['GANGSTR', 'Interaction Graph']
         #     labels = ['GANGSTR', 'Interaction Graph']
